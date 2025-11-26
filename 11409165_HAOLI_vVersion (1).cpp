@@ -20,7 +20,7 @@ std::mutex print_mtx;  //create a global variable for print_mutex
 const int NUM_TEAMS = 4;     // number of teams in the race
 const int NUM_MEMBERS = 4;    // number of athletes in the team
 
-// Data for team/athelete initialisation. The Women’s 4x100 meter relay at the Tokyo 2020 Olympics. The teams took between 41 and 42 seconds.
+// Data for team/athelete initialisation. The Women's 4x100 meter relay at the Tokyo 2020 Olympics. The teams took between 41 and 42 seconds.
 std::array< string, 4> astrTeams = { "Jamaica", "United States", "Great Britain", "Switzerland" };
 std::array< std::array<std::string, 4>, 4> aastrCompetitors = {{
     { "Williams", "Thompson-Herah", "Fraser-Pryce", "Jackson" },
@@ -40,7 +40,7 @@ public:
         return distribution(engine);
     }
 private:
-    // std::random_device creates a seed value for the mt19937 instance creation. It creates a seed value for the “mt” random number generator
+    // std::random_device creates a seed value for the mt19937 instance creation. It creates a seed value for the "mt" random number generator
     std::mt19937 engine{std::random_device{}()};           // Mersenne Twister random number generator engine, with a seed from random_device() - static
     std::uniform_real_distribution<float> distribution;    // This uniform_real_distribution transforms the engine output into the required (min, max) range and data type.
     std::mutex mtx_;
@@ -86,10 +86,10 @@ void thd_runner_16x100m(Competitor& a, RandomTwister& generator) {
 void thd_runner_4x4x100m(Competitor& a, Competitor *pPrevA, RandomTwister& generator) {
     thrd_print(a.getPerson() + " ready, ");
     //Part 2.2 Copy the code from thd_runner_16x100m for
-    // barrier_allthreads_started
-    // barrier_go
-    barrier_allthreads_started.arrive_and_wait();
-    barrier_go.arrive_and_wait();
+        // barrier_allthreads_started
+        // barrier_go
+        barrier_allthreads_started.arrive_and_wait();
+        barrier_go.arrive_and_wait();
     // If the competitor does not have a pointer to a previous competitor, then it must be the first runner of that team.
     if ( pPrevA == NULL) {
         // Task 3: Check if team is already disqualified (for first runner)
@@ -115,7 +115,7 @@ void thd_runner_4x4x100m(Competitor& a, Competitor *pPrevA, RandomTwister& gener
             pPrevA->baton.wait(lock, [pPrevA]{ return pPrevA->bFinished; });
         }
         thrd_print( a.getPerson() +" ("+ a.getTeamName() + ")" +" took the baton from " + pPrevA->getPerson() +" ("+pPrevA->getTeamName() + ")\n");
-        
+
         // Task 3: Check for baton fumble or drop (only for non-first runners)
         // Find team index by comparing team names
         int teamIndex = -1;
@@ -183,7 +183,7 @@ int main() {
     for (int i = 0; i < NUM_TEAMS; ++i) {
         teamDisqualified[i].store(false);
     }
-       std::cout << "Re-run of the women’s 4x100 meter relay at the Tokyo 2020 Olympics.\n" << std::endl;
+    std::cout << "Re-run of the women's 4x100 meter relay at the Tokyo 2020 Olympics.\n" << std::endl;
     // Start threads in each position of the 2D array
     for (int i = 0; i < NUM_TEAMS; ++i) {
         //string strTeam = astrTeams[i];
@@ -226,26 +226,17 @@ int main() {
 
     thrd_print("\n\nThe race official raises her starting pistol...\n");
     //Part 2.8 Change this starter gun time from the fixed 3.5 seconds (next line) to a random value between 3 to 5 seconds.
-    // Note: Using 1-3 seconds for faster testing/debugging (change to 3.0f, 5.0f for assignment requirement)
     RandomTwister randGen_starter(1.0f, 3.0f);  // Starter gun random time (1-3s for testing, should be 3-5s per Part 2.8)
     float fStarterGun_s = randGen_starter.generate();
 
     int starter_ms = static_cast<int>(fStarterGun_s * 1000.0f);
     std::this_thread::sleep_for(std::chrono::milliseconds(starter_ms));
-   
 
     // 所有人在第二个 barrier 等 GO
     barrier_go.arrive_and_wait();
 
     thrd_print("\nGO !\n\n");
 
-
-    //Part 1.10 Sleep using std::this_thread::sleep_for function for the fStarterGun_s  (see advice on type conversion given above)
-   // this_thread::sleep_for(std::chrono::seconds(2));
-    //Part 1.11  Apply the final barrier_go arrive_and_wait here to start all the competitors running.
-                        // Wait at the barrier until all threads arrive
-  //  barrier_go.arrive_and_wait();
-    //thrd_print("\nGO !\n\n");
     // Join all threads
     for (int i = 0; i < NUM_TEAMS; ++i) {
         for (int j = 0; j < NUM_MEMBERS; ++j) {
