@@ -171,7 +171,8 @@ int main() {
 
     thrd_print("\n\nThe race official raises her starting pistol...\n");
     //Part 2.8 Change this starter gun time from the fixed 3.5 seconds (next line) to a random value between 3 to 5 seconds.
-    RandomTwister randGen_starter(3.0f, 5.0f);  // Starter gun random time between 3-5 seconds
+    // Note: Using 1-3 seconds for faster testing/debugging (change to 3.0f, 5.0f for assignment requirement)
+    RandomTwister randGen_starter(1.0f, 3.0f);  // Starter gun random time (1-3s for testing, should be 3-5s per Part 2.8)
     float fStarterGun_s = randGen_starter.generate();
 
     int starter_ms = static_cast<int>(fStarterGun_s * 1000.0f);
