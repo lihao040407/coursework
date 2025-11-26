@@ -84,14 +84,10 @@ void thd_runner_16x100m(Competitor& a, RandomTwister& generator) {
 void thd_runner_4x4x100m(Competitor& a, Competitor *pPrevA, RandomTwister& generator) {
     thrd_print(a.getPerson() + " ready, ");
     //Part 2.2 Copy the code from thd_runner_16x100m for
-        // barrier_allthreads_started
-        // barrier_go
-        thrd_print(a.getPerson() + " reached first barrier\n");
-  
-
-        barrier_allthreads_started.arrive_and_wait();
-        barrier_go.arrive_and_wait();
-   // thrd_print(a.getPerson() + " started, "); 注释老师的
+    // barrier_allthreads_started
+    // barrier_go
+    barrier_allthreads_started.arrive_and_wait();
+    barrier_go.arrive_and_wait();
     // If the competitor does not have a pointer to a previous competitor, then it must be the first runner of that team.
     if ( pPrevA == NULL)  thrd_print(a.getPerson() + " started, ");
     else { // If they are not the first runner in that team, then they need to wait for the previous runner to give them the baton.
@@ -105,12 +101,9 @@ void thd_runner_4x4x100m(Competitor& a, Competitor *pPrevA, RandomTwister& gener
         thrd_print( a.getPerson() +" ("+ a.getTeamName() + ")" +" took the baton from " + pPrevA->getPerson() +" ("+pPrevA->getTeamName() + ")\n");
     }
     //Part 2.5 Copy the code from thd_runner_16x100m for fSprintDuration_seconds and std::this_thread::sleep_for
-    //float fSprintDuration_seconds = -1; // Delete this line, it is just here to let the code compile
-        // The fSprintDuration_seconds
-        // The std::this_thread::sleep_for
-        float fSprintDuration_seconds = generator.generate();
-int sprint_ms = static_cast<int>(fSprintDuration_seconds * 1000.0f);
-std::this_thread::sleep_for(std::chrono::milliseconds(sprint_ms));
+    float fSprintDuration_seconds = generator.generate();
+    int sprint_ms = static_cast<int>(fSprintDuration_seconds * 1000.0f);
+    std::this_thread::sleep_for(std::chrono::milliseconds(sprint_ms));
 
     a.setTime(fSprintDuration_seconds);
     thrd_print( "Leg "+ std::to_string(a.numBatonExchanges()) + ": "+a.getPerson() + " ran in " + std::to_string(fSprintDuration_seconds) + " seconds. ("+ a.getTeamName() + ")\n");
@@ -175,15 +168,11 @@ int main() {
     //Part 1.9  Apply the barrier_allthreads_started arrive_and_wait here to wait for all threads to be created (16 threads + this main thread = 17)
     // Wait at the barrier until all threads arrive
     barrier_allthreads_started.arrive_and_wait();
-    std::cout << "MAIN passed first barrier\n";
 
     thrd_print("\n\nThe race official raises her starting pistol...\n");
     //Part 2.8 Change this starter gun time from the fixed 3.5 seconds (next line) to a random value between 3 to 5 seconds.
-    //float fStarterGun_s = 3.5;
-
-    // ===== Part 2.8: 随机起跑枪时间 1 ~ 3 秒（如果想完全按作业可以改成 3.0f, 5.0f）=====
-    RandomTwister randGen_starter(1.0f, 3.0f);  // 起跑枪专用随机数
-    float fStarterGun_s = randGen_starter.generate();   // 随机秒数
+    RandomTwister randGen_starter(3.0f, 5.0f);  // Starter gun random time between 3-5 seconds
+    float fStarterGun_s = randGen_starter.generate();
 
     int starter_ms = static_cast<int>(fStarterGun_s * 1000.0f);
     std::this_thread::sleep_for(std::chrono::milliseconds(starter_ms));
