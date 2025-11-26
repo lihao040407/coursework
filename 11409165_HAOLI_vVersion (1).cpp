@@ -58,6 +58,8 @@ barrier barrier_allthreads_started(1+(NUM_TEAMS * NUM_MEMBERS)); // Need all the
 barrier barrier_go(1+(NUM_TEAMS *NUM_MEMBERS));
 //Part 2.1  Create a std::atomic variable of type bool, initalised to false and name it "winner". You will use it to ensure just the winning thread claims to have won the race.
 std::atomic<bool> winner(false);
+//Task 3: Track which teams are disqualified due to baton drop
+std::array<std::atomic<bool>, NUM_TEAMS> teamDisqualified;
 
 void thd_runner_16x100m(Competitor& a, RandomTwister& generator) {
     thrd_print(a.getPerson() + " ready, ");
@@ -89,7 +91,21 @@ void thd_runner_4x4x100m(Competitor& a, Competitor *pPrevA, RandomTwister& gener
     barrier_allthreads_started.arrive_and_wait();
     barrier_go.arrive_and_wait();
     // If the competitor does not have a pointer to a previous competitor, then it must be the first runner of that team.
-    if ( pPrevA == NULL)  thrd_print(a.getPerson() + " started, ");
+    if ( pPrevA == NULL) {
+        // Task 3: Check if team is already disqualified (for first runner)
+        int teamIndex = -1;
+        for (int i = 0; i < NUM_TEAMS; ++i) {
+            if (a.getTeamName() == astrTeams[i]) {
+                teamIndex = i;
+                break;
+            }
+        }
+        if (teamIndex >= 0 && teamDisqualified[teamIndex].load()) {
+            thrd_print("*** " + a.getPerson() + " (" + a.getTeamName() + ") - Team already disqualified, cannot start.\n");
+            return; // Exit thread, team is out
+        }
+        thrd_print(a.getPerson() + " started, ");
+    }
     else { // If they are not the first runner in that team, then they need to wait for the previous runner to give them the baton.
         { // Brackets to reduce mutex scope
             //Part 2.3 Create a std::unique_lock<std::mutex> called "lock", initialised with pPrevA->mtx mutex
@@ -99,6 +115,41 @@ void thd_runner_4x4x100m(Competitor& a, Competitor *pPrevA, RandomTwister& gener
             pPrevA->baton.wait(lock, [pPrevA]{ return pPrevA->bFinished; });
         }
         thrd_print( a.getPerson() +" ("+ a.getTeamName() + ")" +" took the baton from " + pPrevA->getPerson() +" ("+pPrevA->getTeamName() + ")\n");
+        
+        // Task 3: Check for baton fumble or drop (only for non-first runners)
+        // Find team index by comparing team names
+        int teamIndex = -1;
+        for (int i = 0; i < NUM_TEAMS; ++i) {
+            if (a.getTeamName() == astrTeams[i]) {
+                teamIndex = i;
+                break;
+            }
+        }
+        
+        // Check if team is already disqualified
+        if (teamIndex >= 0 && teamDisqualified[teamIndex].load()) {
+            thrd_print("*** " + a.getPerson() + " (" + a.getTeamName() + ") - Team already disqualified, cannot continue.\n");
+            return; // Exit thread, team is out
+        }
+        
+        // Task 3: Generate random percentage (0-100) to check for baton issues
+        RandomTwister randGen_baton(0.0f, 100.0f);
+        float batonChance = randGen_baton.generate();
+        
+        if (batonChance < 5.0f) {
+            // Task 3.2: Baton Drop (0-5%) - Team disqualified
+            if (teamIndex >= 0) {
+                teamDisqualified[teamIndex].store(true);
+                thrd_print("*** BATON DROP! " + a.getPerson() + " (" + a.getTeamName() + ") dropped the baton! Team " + a.getTeamName() + " is DISQUALIFIED!\n");
+            }
+            return; // Exit thread, team is out
+        } else if (batonChance < 20.0f) {
+            // Task 3.1: Baton Fumble (5-20%) - Delay = percentage * 10
+            float delaySeconds = batonChance * 0.1f; // percentage * 10 / 100 = percentage * 0.1
+            int delay_ms = static_cast<int>(delaySeconds * 1000.0f);
+            thrd_print("*** BATON FUMBLE! " + a.getPerson() + " (" + a.getTeamName() + ") fumbled the baton! Delay: " + std::to_string(delaySeconds) + " seconds.\n");
+            std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+        }
     }
     //Part 2.5 Copy the code from thd_runner_16x100m for fSprintDuration_seconds and std::this_thread::sleep_for
     float fSprintDuration_seconds = generator.generate();
@@ -128,6 +179,10 @@ int main() {
     float afTeamTime_s[NUM_TEAMS];
     // Part 1.7   Change the random number generation to between 10 s and 12 s.  (you might want to do this later so you don't have to wait while you are debugging!)
     RandomTwister randGen_sprint_time(10.0f, 12.0f);
+    // Task 3: Initialize teamDisqualified array
+    for (int i = 0; i < NUM_TEAMS; ++i) {
+        teamDisqualified[i].store(false);
+    }
        std::cout << "Re-run of the women’s 4x100 meter relay at the Tokyo 2020 Olympics.\n" << std::endl;
     // Start threads in each position of the 2D array
     for (int i = 0; i < NUM_TEAMS; ++i) {
@@ -202,7 +257,13 @@ int main() {
     }
     // Print the results for each team
     std::cout << "\n\nTEAM RESULTS" << std::endl;
-    for (int i = 0; i < NUM_TEAMS; ++i)  aTeams[i].printTimes();
+    for (int i = 0; i < NUM_TEAMS; ++i) {
+        aTeams[i].printTimes();
+        // Task 3: Display disqualification status
+        if (teamDisqualified[i].load()) {
+            std::cout << "  *** Team " << astrTeams[i] << " was DISQUALIFIED due to baton drop! ***" << std::endl;
+        }
+    }
     std::cout << std::endl;
     return 0;
 }
